@@ -220,8 +220,12 @@ static NSString * const kResultIdentifyFilePath    = @"FilePath";
         return;
     }
     ResourceFileInfo *info = [self.unusedResults objectAtIndex:index];
+    NSString *name = info.name;
+    NSString *cleanName = [name hasSuffix:@".imageset"]
+        ? [name substringToIndex:name.length - @".imageset".length]
+        : name;
     [[NSPasteboard generalPasteboard] clearContents];
-    [[NSPasteboard generalPasteboard] setString:info.name forType:NSStringPboardType];
+    [[NSPasteboard generalPasteboard] setString:cleanName forType:NSStringPboardType];
 }
 
 - (void)onResultsTableViewDoubleClicked {
@@ -405,13 +409,32 @@ static NSString * const kResultIdentifyFilePath    = @"FilePath";
     
     if (self.isFileDone && self.isStringDone) {
         NSArray *resNames = [[[ResourceFileSearcher sharedObject].resNameInfoDict allKeys] sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
-        for (NSString *name in resNames) {
-            if (![[ResourceStringSearcher sharedObject] containsResourceName:name]) {
+        // snake_case 转 camelCase 的方法
+        NSString* (^snakeToCamel)(NSString *) = ^NSString* (NSString *input) {
+            NSArray *components = [input componentsSeparatedByString:@"_"];
+            if (components.count == 0) return input;
+
+            NSMutableString *result = [NSMutableString stringWithString:components[0]]; // 保留首个小写
+            for (NSInteger i = 1; i < components.count; i++) {
+                NSString *part = components[i];
+                if (part.length > 0) {
+                    NSString *capitalized = [part stringByReplacingCharactersInRange:NSMakeRange(0,1)
+                                                                         withString:[[part substringToIndex:1] uppercaseString]];
+                    [result appendString:capitalized];
+                }
+            }
+            return result;
+        };
+
+        for (NSString *originName in resNames) {
+            NSString *camelName = snakeToCamel(originName);
+//            NSLog(@"Checking resource: %@", camelName);
+            if (![[ResourceStringSearcher sharedObject] containsResourceName:originName] && ![[ResourceStringSearcher sharedObject] containsResourceName:camelName]) {
                 if (!self.ignoreSimilarCheckbox.state
-                    || ![[ResourceStringSearcher sharedObject] containsSimilarResourceName:name]) {
+                    || ![[ResourceStringSearcher sharedObject] containsSimilarResourceName:originName]) {
                     //TODO: if imageset name is A but contains png with name B, and using as B, should ignore A.imageset
                     
-                    ResourceFileInfo *resInfo = [ResourceFileSearcher sharedObject].resNameInfoDict[name];
+                    ResourceFileInfo *resInfo = [ResourceFileSearcher sharedObject].resNameInfoDict[originName];
                     if (!resInfo.isDir
                         || ![self usingResWithDiffrentDirName:resInfo]) {
                         [self.unusedResults addObject:resInfo];

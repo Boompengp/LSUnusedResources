@@ -149,26 +149,11 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
 
 - (NSArray *)createDefaultResourcePatternsWithResourceSuffixs:(NSArray *)resSuffixs {
     NSArray *enables = @[@1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1];
-    NSArray *fileSuffixs = @[@"h", @"m", @"mm", @"swift", @"xib", @"storyboard", @"strings", @"c", @"cpp", @"html", @"js", @"json", @"plist", @"css"];
-    
-    NSString *cPattern = [NSString stringWithFormat:@"([a-zA-Z0-9_-]*)\\.(%@)", [resSuffixs componentsJoinedByString:@"|"]]; // *.(png|gif|jpg|jpeg)
-    NSString *ojbcPattern = @"@\"(.*?)\""; // @"imageNamed:@\"(.+)\"";//or: (imageNamed|contentOfFile):@\"(.*)\" // http://www.raywenderlich.com/30288/nsregularexpression-tutorial-and-cheat-sheet
-    NSString *xibPattern = @"image name=\"(.+?)\""; // image name="xx"
-    
-    NSArray *filePatterns = @[cPattern,    // .h
-                              ojbcPattern, // .m
-                              ojbcPattern, // .mm
-                              @"\"(.*?)\"",// swift.
-                              xibPattern,  // .xib
-                              xibPattern,  // .storyboard
-                              @"=\\s*\"(.*)\"\\s*;",  // .strings
-                              cPattern,    // .c
-                              cPattern,    // .cpp
-                              @"img\\s+src=[\"\'](.*?)[\"\']", // .html, <img src="xx"> <img src='xx'>
-                              @"[\"\']src[\"\'],\\s+[\"\'](.*?)[\"\']", // .js,  "src", "xx"> 'src', 'xx'>
-                              @":\\s*\"(.*?)\"", // .json, "xx"
-                              @">(.*?)<",  // .plist, "<string>xx</string>"
-                              cPattern];   // .css
+    NSArray *fileSuffixs = @[@"swift", @"swift"];
+
+    NSArray *filePatterns = @[@"\"(.*?)\"",// swift.
+                              @"\\.(\\w+)",
+                              ];
     
     NSArray *matchGroupIndexs = @[@1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1];
     
@@ -245,6 +230,7 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
     if (resourcePattern.regex.length && resourcePattern.groupIndex >= 0) {
         NSSet *set = [self getMatchStringWithContent:content pattern:resourcePattern.regex groupIndex:resourcePattern.groupIndex];
         [self.resStringSet unionSet:set];
+//        NSLog(@"resStringSet: %@", self.resStringSet);
     }
 }
 
