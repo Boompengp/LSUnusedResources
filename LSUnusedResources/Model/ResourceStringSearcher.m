@@ -42,7 +42,7 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
 @property (strong, nonatomic) NSString *projectPath;
 @property (strong, nonatomic) NSArray *resSuffixs;
 @property (strong, nonatomic) NSArray *excludeFolders;
-@property (strong, nonatomic) NSMutableDictionary *fileSuffixToResourcePatterns;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<ResourceStringPattern *> *> *fileSuffixToResourcePatterns;
 @property (assign, nonatomic) BOOL isRunning;
 
 @end
@@ -75,11 +75,16 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
     self.fileSuffixToResourcePatterns = [NSMutableDictionary dictionary];
     for (NSDictionary *dict in resourcePatterns) {
         ResourceStringPattern *pattern = [[ResourceStringPattern alloc] initWithDictionary:dict];
-        if (pattern.enable) {
-            [self.fileSuffixToResourcePatterns setObject:pattern forKey:pattern.suffix];
+        if (!pattern.enable) continue;
+
+        NSMutableArray *patternsForSuffix = [self.fileSuffixToResourcePatterns objectForKey:pattern.suffix];
+        if (!patternsForSuffix) {
+            patternsForSuffix = [NSMutableArray array];
+            [self.fileSuffixToResourcePatterns setObject:patternsForSuffix forKey:pattern.suffix];
         }
+        [patternsForSuffix addObject:pattern];
     }
-    
+
     [self runSearchTask];
 }
 
@@ -210,12 +215,13 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
             [self handleFilesAtPath:tempPath];
         } else {
             NSString *ext = [[file pathExtension] lowercaseString];
-            ResourceStringPattern *resourcePattern = self.fileSuffixToResourcePatterns[ext];
+            NSArray<ResourceStringPattern *> *resourcePattern = self.fileSuffixToResourcePatterns[ext];
             if (!resourcePattern) {
                 continue;
             }
-            
-            [self parseFileAtPath:tempPath withResourcePattern:resourcePattern];
+            for (ResourceStringPattern *pattern in resourcePattern) {
+                [self parseFileAtPath:tempPath withResourcePattern:pattern];
+            }
         }
     }
     return YES;
