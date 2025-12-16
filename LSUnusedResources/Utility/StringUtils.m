@@ -34,16 +34,86 @@ static NSString * const kSuffix3x = @"@3x";
 
 + (BOOL)isImageTypeWithName:(NSString *)name {
     static NSArray *imageSuffixs = nil;
-    
+
     if (!imageSuffixs) {
         imageSuffixs = @[@"png", @"jpg", @"jpeg", @"gif", @"bmp", @"pdf"];
     }
-    
+
     NSString *ext = [[name pathExtension] lowercaseString];
     if (ext.length && [imageSuffixs containsObject:ext]) {
         return YES;
     }
     return NO;
+}
+
++ (NSString *)snakeCaseToCamelCase:(NSString *)input {
+    if (!input || input.length == 0) {
+        return input;
+    }
+
+    NSArray *components = [input componentsSeparatedByString:@"_"];
+    if (components.count == 0) {
+        return input;
+    }
+
+    NSMutableString *result = [NSMutableString stringWithString:components[0]]; // 保留首个小写
+    for (NSInteger i = 1; i < components.count; i++) {
+        NSString *part = components[i];
+        if (part.length > 0) {
+            // 处理数字和字母混合的情况（如 "1v1" -> "1V1"）
+            NSMutableString *processedPart = [NSMutableString string];
+            BOOL lastWasDigit = NO;
+
+            for (NSInteger j = 0; j < part.length; j++) {
+                unichar ch = [part characterAtIndex:j];
+                BOOL isDigit = (ch >= '0' && ch <= '9');
+
+                if (j == 0 || lastWasDigit) {
+                    // 首字母或数字后的字母大写
+                    [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] uppercaseString]];
+                } else {
+                    [processedPart appendFormat:@"%C", ch];
+                }
+                lastWasDigit = isDigit;
+            }
+
+            [result appendString:processedPart];
+        }
+    }
+    return result;
+}
+
++ (NSArray<NSString *> *)resourceNameVariants:(NSString *)resourceName {
+    if (!resourceName || resourceName.length == 0) {
+        return @[];
+    }
+
+    NSMutableArray *variants = [NSMutableArray array];
+
+    // 1. 原始名称
+    [variants addObject:resourceName];
+
+    // 2. 驼峰名称
+    NSString *camelName = [self snakeCaseToCamelCase:resourceName];
+    if (![variants containsObject:camelName]) {
+        [variants addObject:camelName];
+    }
+
+    // 3. 如果名称以 _image 结尾，生成去掉 _image 后缀的变体
+    // 因为 ImageResource 会自动去掉 _image 后缀
+    if ([resourceName hasSuffix:@"_image"]) {
+        NSString *withoutImageSuffix = [resourceName substringToIndex:resourceName.length - 6]; // "_image" 长度为 6
+        if (![variants containsObject:withoutImageSuffix]) {
+            [variants addObject:withoutImageSuffix];
+        }
+
+        NSString *camelWithoutImageSuffix = [self snakeCaseToCamelCase:withoutImageSuffix];
+        if (![variants containsObject:camelWithoutImageSuffix]) {
+            [variants addObject:camelWithoutImageSuffix];
+        }
+    }
+
+    return variants;
 }
 
 @end

@@ -409,27 +409,23 @@ static NSString * const kResultIdentifyFilePath    = @"FilePath";
     
     if (self.isFileDone && self.isStringDone) {
         NSArray *resNames = [[[ResourceFileSearcher sharedObject].resNameInfoDict allKeys] sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
-        // snake_case 转 camelCase 的方法
-        NSString* (^snakeToCamel)(NSString *) = ^NSString* (NSString *input) {
-            NSArray *components = [input componentsSeparatedByString:@"_"];
-            if (components.count == 0) return input;
-
-            NSMutableString *result = [NSMutableString stringWithString:components[0]]; // 保留首个小写
-            for (NSInteger i = 1; i < components.count; i++) {
-                NSString *part = components[i];
-                if (part.length > 0) {
-                    NSString *capitalized = [part stringByReplacingCharactersInRange:NSMakeRange(0,1)
-                                                                         withString:[[part substringToIndex:1] uppercaseString]];
-                    [result appendString:capitalized];
-                }
-            }
-            return result;
-        };
+        NSLog(@"Resource names: %@", resNames);
 
         for (NSString *originName in resNames) {
-            NSString *camelName = snakeToCamel(originName);
-//            NSLog(@"Checking resource: %@", camelName);
-            if (![[ResourceStringSearcher sharedObject] containsResourceName:originName] && ![[ResourceStringSearcher sharedObject] containsResourceName:camelName]) {
+            // 使用 StringUtils 生成所有可能的命名变体
+            NSArray *nameVariants = [StringUtils resourceNameVariants:originName];
+
+            // 检查所有变体是否被使用
+            BOOL isUsed = NO;
+            for (NSString *variant in nameVariants) {
+                if ([[ResourceStringSearcher sharedObject] containsResourceName:variant]) {
+                    isUsed = YES;
+                    break;
+                }
+            }
+
+//            NSLog(@"Checking resource: %@ variants: %@, isUsed: %d", originName, nameVariants, isUsed);
+            if (!isUsed) {
                 if (!self.ignoreSimilarCheckbox.state
                     || ![[ResourceStringSearcher sharedObject] containsSimilarResourceName:originName]) {
                     //TODO: if imageset name is A but contains png with name B, and using as B, should ignore A.imageset
