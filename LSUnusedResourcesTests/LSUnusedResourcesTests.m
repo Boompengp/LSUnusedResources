@@ -76,6 +76,24 @@
     XCTAssertNil(result, @"nil 输入应返回 nil");
 }
 
+- (void)testSnakeCaseToCamelCase_FirstLetterUppercase {
+    // 测试首字母大写的情况 - 应该转换为小写
+    NSString *result = [StringUtils snakeCaseToCamelCase:@"Pk_res_top1_icon"];
+    XCTAssertEqualObjects(result, @"pkResTop1Icon", @"首字母大写应转换为小写：应该是 pkResTop1Icon");
+}
+
+- (void)testSnakeCaseToCamelCase_AllUppercase {
+    // 测试全大写的情况
+    NSString *result = [StringUtils snakeCaseToCamelCase:@"ICON_HOME"];
+    XCTAssertEqualObjects(result, @"iconHome", @"全大写应转换为标准 camelCase");
+}
+
+- (void)testSnakeCaseToCamelCase_MixedCase {
+    // 测试混合大小写
+    NSString *result = [StringUtils snakeCaseToCamelCase:@"MyIcon_Home_Image"];
+    XCTAssertEqualObjects(result, @"myiconHomeImage", @"混合大小写应转换为标准 camelCase");
+}
+
 #pragma mark - Resource Name Variants Tests
 
 - (void)testResourceNameVariants_BasicName {
@@ -172,6 +190,17 @@
 
     XCTAssertTrue([variants containsObject:imageResourceName],
                   @"应该能匹配复杂情况下的 ImageResource 名称");
+}
+
+- (void)testIntegration_RealWorldScenario4 {
+    // 场景4：首字母大写的情况 - Pk_res_top1_icon
+    NSArray *variants = [StringUtils resourceNameVariants:@"Pk_res_top1_icon"];
+
+    // ImageResource 会转换为 .pkResTop1Icon（首字母转小写）
+    NSString *imageResourceName = @"pkResTop1Icon";
+
+    XCTAssertTrue([variants containsObject:imageResourceName],
+                  @"应该能匹配首字母大写的 ImageResource 名称 .pkResTop1Icon");
 }
 
 @end

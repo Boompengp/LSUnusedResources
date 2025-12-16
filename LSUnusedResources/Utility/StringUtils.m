@@ -56,8 +56,10 @@ static NSString * const kSuffix3x = @"@3x";
         return input;
     }
 
-    NSMutableString *result = [NSMutableString stringWithString:components[0]]; // 保留首个小写
-    for (NSInteger i = 1; i < components.count; i++) {
+    NSMutableString *result = [NSMutableString string];
+
+    // 处理所有部分
+    for (NSInteger i = 0; i < components.count; i++) {
         NSString *part = components[i];
         if (part.length > 0) {
             // 处理数字和字母混合的情况（如 "1v1" -> "1V1"）
@@ -68,11 +70,15 @@ static NSString * const kSuffix3x = @"@3x";
                 unichar ch = [part characterAtIndex:j];
                 BOOL isDigit = (ch >= '0' && ch <= '9');
 
-                if (j == 0 || lastWasDigit) {
-                    // 首字母或数字后的字母大写
+                if (i == 0 && j == 0) {
+                    // 第一个部分的首字母必须小写（ImageResource 规则）
+                    [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] lowercaseString]];
+                } else if (j == 0 || lastWasDigit) {
+                    // 其他部分的首字母或数字后的字母大写
                     [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] uppercaseString]];
                 } else {
-                    [processedPart appendFormat:@"%C", ch];
+                    // 保持小写
+                    [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] lowercaseString]];
                 }
                 lastWasDigit = isDigit;
             }
