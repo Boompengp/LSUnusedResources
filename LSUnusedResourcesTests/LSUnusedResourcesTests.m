@@ -83,15 +83,27 @@
 }
 
 - (void)testSnakeCaseToCamelCase_AllUppercase {
-    // 测试全大写的情况
+    // 测试全大写的情况（罕见场景，保持原样除了需要改变的位置）
     NSString *result = [StringUtils snakeCaseToCamelCase:@"ICON_HOME"];
-    XCTAssertEqualObjects(result, @"iconHome", @"全大写应转换为标准 camelCase");
+    XCTAssertEqualObjects(result, @"iCONHOME", @"全大写：首字母小写，其他部分首字母大写，内部保持原样");
 }
 
 - (void)testSnakeCaseToCamelCase_MixedCase {
-    // 测试混合大小写
+    // 测试混合大小写（保留原有的驼峰结构）
     NSString *result = [StringUtils snakeCaseToCamelCase:@"MyIcon_Home_Image"];
-    XCTAssertEqualObjects(result, @"myiconHomeImage", @"混合大小写应转换为标准 camelCase");
+    XCTAssertEqualObjects(result, @"myIconHomeImage", @"混合大小写：保留原有驼峰结构");
+}
+
+- (void)testSnakeCaseToCamelCase_CamelCaseInParts {
+    // 测试部分本身就是驼峰命名的情况 - 这是新发现的问题
+    NSString *result = [StringUtils snakeCaseToCamelCase:@"goldenSlot_game_bg"];
+    XCTAssertEqualObjects(result, @"goldenSlotGameBg", @"应保留 goldenSlot 中的大写 S");
+}
+
+- (void)testSnakeCaseToCamelCase_MultipleCamelParts {
+    // 测试多个驼峰部分
+    NSString *result = [StringUtils snakeCaseToCamelCase:@"userInfo_dataModel_viewController"];
+    XCTAssertEqualObjects(result, @"userInfoDataModelViewController", @"应保留所有部分的内部大小写");
 }
 
 #pragma mark - Resource Name Variants Tests
@@ -201,6 +213,17 @@
 
     XCTAssertTrue([variants containsObject:imageResourceName],
                   @"应该能匹配首字母大写的 ImageResource 名称 .pkResTop1Icon");
+}
+
+- (void)testIntegration_RealWorldScenario5 {
+    // 场景5：部分已经是驼峰命名 - goldenSlot_game_bg
+    NSArray *variants = [StringUtils resourceNameVariants:@"goldenSlot_game_bg"];
+
+    // ImageResource 会转换为 .goldenSlotGameBg（保留内部的驼峰结构）
+    NSString *imageResourceName = @"goldenSlotGameBg";
+
+    XCTAssertTrue([variants containsObject:imageResourceName],
+                  @"应该能匹配保留驼峰结构的 ImageResource 名称 .goldenSlotGameBg");
 }
 
 @end

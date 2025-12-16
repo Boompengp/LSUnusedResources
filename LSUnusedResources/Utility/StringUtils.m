@@ -77,8 +77,8 @@ static NSString * const kSuffix3x = @"@3x";
                     // 其他部分的首字母或数字后的字母大写
                     [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] uppercaseString]];
                 } else {
-                    // 保持小写
-                    [processedPart appendString:[[NSString stringWithFormat:@"%C", ch] lowercaseString]];
+                    // 保持原样（不改变大小写）
+                    [processedPart appendFormat:@"%C", ch];
                 }
                 lastWasDigit = isDigit;
             }
