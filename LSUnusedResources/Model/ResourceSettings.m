@@ -35,6 +35,12 @@ static NSString * const kSettingsKeyMatchSimilarName = @"MatchSimilarName";
     if (self = [super init]) {
         _projectPath = [self getValueForKey:kSettingsKeyProjectPath];
         _excludeFolders = [self getValueForKey:kSettingsKeyExcludeFolders];
+
+        // 如果没有设置过排除文件夹，使用默认值
+        if (!_excludeFolders || _excludeFolders.count == 0) {
+            _excludeFolders = @[@"Pods", @"Carthage", @".build", @"build", @"DerivedData", @".git"];
+        }
+
         _resourceSuffixs = [self getValueForKey:kSettingsKeyResourceSuffixs];
         _resourcePatterns = [self getValueForKey:kSettingsKeyResourcePatterns];
         _matchSimilarName = [self getValueForKey:kSettingsKeyMatchSimilarName];
