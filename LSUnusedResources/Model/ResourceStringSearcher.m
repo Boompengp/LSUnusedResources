@@ -153,23 +153,52 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
 }
 
 - (NSArray *)createDefaultResourcePatternsWithResourceSuffixs:(NSArray *)resSuffixs {
-    NSArray *enables = @[@1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1];
-    NSArray *fileSuffixs = @[@"swift", @"swift"];
+    // 定义所有支持的文件类型和对应的正则表达式
+    NSArray *fileSuffixs = @[
+        // Objective-C
+        @"h", @"m", @"mm",
+        // Swift
+        @"swift", @"swift",
+        // Interface Builder - 每种文件类型可以有多个正则表达式
+        @"xib", @"xib",
+        @"storyboard", @"storyboard",
+        // 其他
+        @"c", @"cpp", @"html", @"js", @"json", @"plist", @"css", @"strings"
+    ];
 
-    NSArray *filePatterns = @[@"\"(.*?)\"",// swift.
-                              @"\\.(\\w+)",
-                              ];
-    
-    NSArray *matchGroupIndexs = @[@1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1, @1];
-    
+    NSArray *filePatterns = @[
+        // Objective-C: imageNamed:@"xxx", @"xxx", [UIImage imageNamed:@"xxx"]
+        @"imageNamed:@\"(.*?)\"",
+        @"imageNamed:@\"(.*?)\"",
+        @"imageNamed:@\"(.*?)\"",
+        // Swift: "xxx", .propertyName
+        @"\"(.*?)\"",
+        @"\\.(\\w+)",
+        // XIB: 匹配 image 元素的 name 属性，如 <image name="xxx">
+        @"<image[^>]*?\\sname=\"([^\"]+)\"",
+        // XIB: 匹配各种图片属性
+        // image="xxx", imageName="xxx", normalImage="xxx", selectedImage="xxx",
+        // backgroundImage="xxx", highlightedImage="xxx" 等
+        @"(?:normal|selected|highlighted|background)?[iI]mage(?:Name)?=\"([^\"]+)\"",
+        // Storyboard: 匹配 image 元素的 name 属性
+        @"<image[^>]*?\\sname=\"([^\"]+)\"",
+        // Storyboard: 匹配各种图片属性
+        @"(?:normal|selected|highlighted|background)?[iI]mage(?:Name)?=\"([^\"]+)\"",
+        // 其他文件：字符串字面量
+        @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\"", @"\"(.*?)\""
+    ];
+
+    // 所有模式默认启用
     NSMutableArray *patterns = [NSMutableArray array];
-    for (NSInteger index = 0; index < fileSuffixs.count; ++ index) {
-        [patterns addObject:@{kPatternIdentifyEnable: enables[index],
-                              kPatternIdentifySuffix: fileSuffixs[index],
-                              kPatternIdentifyRegex: filePatterns[index],
-                              kPatternIdentifyGroupIndex: matchGroupIndexs[index]}];
+    for (NSInteger index = 0; index < fileSuffixs.count; index++) {
+        [patterns addObject:@{
+            kPatternIdentifyEnable: @1,
+            kPatternIdentifySuffix: fileSuffixs[index],
+            kPatternIdentifyRegex: filePatterns[index],
+            kPatternIdentifyGroupIndex: @1
+        }];
     }
-    
+
     return patterns;
 }
 
@@ -243,7 +272,7 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
 - (NSSet *)getMatchStringWithContent:(NSString *)content pattern:(NSString*)pattern groupIndex:(NSInteger)index {
     NSRegularExpression *regexExpression = [NSRegularExpression regularExpressionWithPattern:pattern options:NSRegularExpressionCaseInsensitive error:nil];
     NSArray* matchs = [regexExpression matchesInString:content options:0 range:NSMakeRange(0, content.length)];
-    
+
     if (matchs.count) {
         NSMutableSet *set = [NSMutableSet set];
         for (NSTextCheckingResult *checkingResult in matchs) {
@@ -251,12 +280,16 @@ static NSString * const kPatternIdentifyGroupIndex  = @"PatternGroupIndex";
             if (res.length) {
                 res = [res lastPathComponent];
                 res = [StringUtils stringByRemoveResourceSuffix:res];
-                [set addObject:res];
+
+                // 生成资源名称的所有可能变体（处理 snake_case、camelCase 等不同命名方式）
+                // 这样可以正确匹配 xib/storyboard 中使用不同命名格式的资源
+                NSArray *variants = [StringUtils resourceNameVariants:res];
+                [set addObjectsFromArray:variants];
             }
         }
         return set;
     }
-    
+
     return nil;
 }
 
